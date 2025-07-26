@@ -357,14 +357,29 @@ const generateEmergencyRoutes = async (sosLocation, emergencyServices) => {
 export const sendWhatsAppNotifications = async (sosReport, approvalData) => {
   try {
     console.log('📱 Sending REAL WhatsApp notifications for approved SOS report...');
+    console.log('📋 SOS Report structure:', {
+      hasId: !!sosReport.id,
+      hasIncident: !!sosReport.incident,
+      hasLocation: !!sosReport.incident?.location,
+      reportKeys: Object.keys(sosReport || {})
+    });
+
+    // Validate required data
+    if (!sosReport || !sosReport.id) {
+      throw new Error('Invalid sosReport: missing ID');
+    }
+
+    if (!sosReport.incident?.location?.latitude || !sosReport.incident?.location?.longitude) {
+      throw new Error('Invalid sosReport: missing location coordinates');
+    }
 
     const whatsappData = {
       reportId: sosReport.id,
       location: sosReport.incident?.location?.address || 'Location not available',
       message: sosReport.incident?.message || 'Emergency situation',
       coordinates: {
-        lat: sosReport.incident?.location?.latitude,
-        lng: sosReport.incident?.location?.longitude
+        lat: sosReport.incident.location.latitude,
+        lng: sosReport.incident.location.longitude
       },
       timestamp: new Date().toISOString(),
       adminNotes: approvalData.adminNotes
@@ -594,7 +609,7 @@ export const createAlert = async (alertData) => {
     console.log('✅ Alert created successfully with ID:', docRef.id);
     return docRef.id;
   } catch (error) {
-    console.error('❌ Failed to create alert:', error);
+    console.error('��� Failed to create alert:', error);
     throw new Error(`Failed to create alert: ${error.message}`);
   }
 };
