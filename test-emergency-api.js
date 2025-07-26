@@ -37,10 +37,7 @@ const testEmergencyDispatch = async () => {
       }
     ],
     publicRecipients: [
-      { name: 'User A', phone: '+91-9876543210', distance: '0.2km' },
-      { name: 'User B', phone: '+91-9876543211', distance: '0.5km' },
-      { name: 'User C', phone: '+91-9876543212', distance: '0.8km' },
-      { name: 'User D', phone: '+91-9876543213', distance: '1.0km' }
+      { name: 'Emergency Contact', phone: '+91-9996101244', distance: '0.0km' }
     ],
     adminNotes: 'Emergency approved for immediate dispatch'
   };
