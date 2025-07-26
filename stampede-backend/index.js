@@ -67,14 +67,26 @@ app.post('/api/alert/stampede', async (req, res) => {
     console.log(`Attempting WhatsApp send from ${twilioWhatsAppPhoneNumber} to ${recipientWhatsAppPhoneNumber}`);
 
     try {
-        await client.messages.create({
-            body: alertMessage,
-            to: recipientWhatsAppPhoneNumber,
-            from: twilioWhatsAppPhoneNumber
-        });
+        if (isDemoMode) {
+            console.log('📋 DEMO MODE: Simulating WhatsApp alert send');
+            console.log(`📱 Would send to: ${recipientWhatsAppPhoneNumber}`);
+            console.log(`📝 Message: ${alertMessage}`);
 
-        console.log('WhatsApp alert sent successfully!');
-        res.status(200).json({ success: true, message: 'WhatsApp alert sent!' });
+            res.status(200).json({
+                success: true,
+                message: 'WhatsApp alert simulated (Demo Mode)',
+                demo: true
+            });
+        } else {
+            await client.messages.create({
+                body: alertMessage,
+                to: recipientWhatsAppPhoneNumber,
+                from: twilioWhatsAppPhoneNumber
+            });
+
+            console.log('WhatsApp alert sent successfully!');
+            res.status(200).json({ success: true, message: 'WhatsApp alert sent!' });
+        }
     } catch (error) {
         console.error('Twilio Error:', error); // Internal log
 
