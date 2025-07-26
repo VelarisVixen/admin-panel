@@ -195,7 +195,7 @@ Emergency Contact: ${service.phone}`;
                     success: false,
                     error: error.message,
                     type: 'emergency_service',
-                    simulated: false
+                    simulated: isDemoMode
                 });
                 results.errors.push(`Emergency service ${service.recipient}: ${error.message}`);
             }
