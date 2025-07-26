@@ -325,6 +325,9 @@ function App() {
 
       // Find the current report for WhatsApp notifications
       const currentReport = sosReports.find(report => report.id === sosId);
+      console.log('🔍 Looking for report with ID:', sosId);
+      console.log('📊 Available reports:', sosReports.map(r => ({ id: r.id, hasIncident: !!r.incident })));
+      console.log('📄 Found report:', currentReport ? 'Yes' : 'No', currentReport ? `(id: ${currentReport.id})` : '');
 
       // Update Firebase with admin decision
       const adminNotes = decision === 'approved'
@@ -335,7 +338,17 @@ function App() {
 
       // Send WhatsApp notifications if approved
       if (decision === 'approved' && currentReport) {
-        console.log('�� Sending WhatsApp notifications...');
+        console.log('📱 Sending WhatsApp notifications for report:', currentReport.id);
+        console.log('📍 Report structure check:', {
+          hasId: !!currentReport.id,
+          hasIncident: !!currentReport.incident,
+          hasLocation: !!currentReport.incident?.location,
+          hasMessage: !!currentReport.incident?.message,
+          coordinates: currentReport.incident?.location ? {
+            lat: currentReport.incident.location.latitude,
+            lng: currentReport.incident.location.longitude
+          } : 'No coordinates'
+        });
 
         const whatsappResult = await sendWhatsAppNotifications(currentReport, { adminNotes });
 
