@@ -285,9 +285,9 @@ function App() {
           _id: 'demo_firebase_1',
           userId: 'demo_user_1',
           userInfo: {
-            name: 'Demo User - Firebase',
-            phone: '+91-9876543210',
-            email: 'demo@firebase.com'
+            name: 'Emergency Contact',
+            phone: '+91-9996101244',
+            email: 'emergency@contact.com'
           },
           incident: {
             videoUrl: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4',
