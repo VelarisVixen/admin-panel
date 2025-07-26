@@ -324,7 +324,7 @@ function App() {
       console.log(`🔄 Processing SOS report ${sosId} with decision: ${decision}`);
 
       // Find the current report for WhatsApp notifications
-      const currentReport = sosReports.find(report => report._id === sosId);
+      const currentReport = sosReports.find(report => report.id === sosId);
 
       // Update Firebase with admin decision
       const adminNotes = decision === 'approved'
@@ -335,7 +335,7 @@ function App() {
 
       // Send WhatsApp notifications if approved
       if (decision === 'approved' && currentReport) {
-        console.log('📱 Sending WhatsApp notifications...');
+        console.log('�� Sending WhatsApp notifications...');
 
         const whatsappResult = await sendWhatsAppNotifications(currentReport, { adminNotes });
 
