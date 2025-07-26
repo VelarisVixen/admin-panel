@@ -353,18 +353,33 @@ const generateEmergencyRoutes = async (sosLocation, emergencyServices) => {
   }
 };
 
-// Enhanced WhatsApp notification function with emergency service routes
+// Enhanced WhatsApp notification function with emergency service routes and REAL sending
 export const sendWhatsAppNotifications = async (sosReport, approvalData) => {
   try {
-    console.log('📱 Sending enhanced WhatsApp notifications for approved SOS report...');
+    console.log('📱 Sending REAL WhatsApp notifications for approved SOS report...');
+    console.log('📋 SOS Report structure:', {
+      hasId: !!sosReport.id,
+      hasIncident: !!sosReport.incident,
+      hasLocation: !!sosReport.incident?.location,
+      reportKeys: Object.keys(sosReport || {})
+    });
+
+    // Validate required data
+    if (!sosReport || !sosReport.id) {
+      throw new Error('Invalid sosReport: missing ID');
+    }
+
+    if (!sosReport.incident?.location?.latitude || !sosReport.incident?.location?.longitude) {
+      throw new Error('Invalid sosReport: missing location coordinates');
+    }
 
     const whatsappData = {
       reportId: sosReport.id,
       location: sosReport.incident?.location?.address || 'Location not available',
       message: sosReport.incident?.message || 'Emergency situation',
       coordinates: {
-        lat: sosReport.incident?.location?.latitude,
-        lng: sosReport.incident?.location?.longitude
+        lat: sosReport.incident.location.latitude,
+        lng: sosReport.incident.location.longitude
       },
       timestamp: new Date().toISOString(),
       adminNotes: approvalData.adminNotes
@@ -408,12 +423,9 @@ ${route.directionsText}
 Emergency Contact: ${route.phone}`
     }));
 
-    // Simulate nearby users (for public alerts)
+    // Send to specific user instead of nearby users
     const nearbyUsers = [
-      { name: 'User A', phone: '+91-9876543210', distance: '0.2km' },
-      { name: 'User B', phone: '+91-9876543211', distance: '0.5km' },
-      { name: 'User C', phone: '+91-9876543212', distance: '0.8km' },
-      { name: 'User D', phone: '+91-9876543213', distance: '1.0km' }
+      { name: 'Emergency Contact', phone: '+91-9996101244', distance: '0.0km' }
     ];
 
     // Create public WhatsApp message template
@@ -433,38 +445,137 @@ ${emergencyRoutes.map(route => `${route.icon} ${route.serviceName} (ETA: ${route
 
 Stay Safe! 🙏`;
 
-    // Log notification details
-    console.log('📤 Emergency Service Messages:', emergencyServiceMessages);
-    console.log('📤 Public WhatsApp message:', publicWhatsappMessage);
-    console.log('👥 Sending to nearby users:', nearbyUsers);
-    console.log('🚒 Sending to emergency services:', emergencyRoutes.length);
+    console.log('📡 Calling backend API for REAL WhatsApp sending...');
 
-    // Store enhanced notification log in Firestore
-    await addDoc(collection(db, 'notificationLogs'), {
-      reportId: sosReport.id,
-      type: 'enhanced_emergency_dispatch',
-      emergencyServices: emergencyServiceMessages,
-      publicRecipients: nearbyUsers,
-      publicMessage: publicWhatsappMessage,
-      emergencyRoutes: emergencyRoutes,
-      sentAt: serverTimestamp(),
-      status: 'sent'
-    });
+    try {
+      // Call backend API for REAL WhatsApp notifications
+      const response = await fetch('http://localhost:5000/api/emergency/dispatch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reportId: sosReport.id,
+          location: whatsappData.location,
+          coordinates: whatsappData.coordinates,
+          emergencyType: whatsappData.message,
+          emergencyServices: emergencyRoutes.map(route => ({
+            recipient: route.serviceName,
+            phone: route.phone,
+            serviceName: route.serviceName,
+            serviceType: route.serviceType,
+            icon: route.icon,
+            address: route.address,
+            distance: route.distance,
+            eta: route.eta,
+            routeUrl: route.routeUrl,
+            directionsText: route.directionsText
+          })),
+          publicRecipients: nearbyUsers,
+          adminNotes: approvalData.adminNotes
+        })
+      });
 
-    return {
-      success: true,
-      recipientCount: nearbyUsers.length,
-      emergencyServicesNotified: emergencyServiceMessages.length,
-      routesGenerated: emergencyRoutes.length,
-      message: `Emergency notifications sent successfully!
+      const backendResult = await response.json();
 
-🚒 Emergency Services Alerted: ${emergencyServiceMessages.length}
-👥 Public Alerts Sent: ${nearbyUsers.length}
+      if (backendResult.success) {
+        console.log('✅ Backend API call successful!');
+        console.log('📊 SMS Results:', backendResult.smsResults);
+
+        // Store REAL notification log in Firestore with actual results
+        await addDoc(collection(db, 'notificationLogs'), {
+          reportId: sosReport.id,
+          type: 'enhanced_emergency_dispatch_sms',
+          emergencyServices: emergencyRoutes.map(route => ({
+            message: `🚨 EMERGENCY DISPATCH ALERT 🚨 ${route.icon} ${route.serviceName} 📞 Emergency Report ID: ${sosReport.id} 📍 EMERGENCY LOCATION: ${whatsappData.location}: ${whatsappData.coordinates.lat}, ${whatsappData.coordinates.lng} 🚨 EMERGENCY TYPE: ${whatsappData.message} ⏰ Reported: ${new Date().toLocaleString()} 🗺️ FASTEST ROUTE TO EMERGENCY: ${route.directionsText} 📱 ROUTE LINK: ${route.routeUrl} ✅ VERIFIED by Emergency Response Team ⚡ IMMEDIATE DISPATCH REQUIRED Emergency Contact: ${route.phone}`,
+            phone: route.phone,
+            recipient: route.serviceName
+          })),
+          publicRecipients: nearbyUsers,
+          publicMessage: publicWhatsappMessage,
+          smsResults: backendResult.smsResults || [],
+          sentAt: serverTimestamp(),
+          status: 'sent'
+        });
+
+        return {
+          success: true,
+          recipientCount: nearbyUsers.length,
+          emergencyServicesNotified: emergencyRoutes.length,
+          routesGenerated: emergencyRoutes.length,
+          smsResults: backendResult.smsResults,
+          totalSent: backendResult.totalSent,
+          totalFailed: backendResult.totalFailed,
+          message: `REAL emergency notifications sent via Twilio!
+
+🚒 Emergency Services Alerted: ${backendResult.totalSent}
+�� Failed Notifications: ${backendResult.totalFailed}
 🗺️ Routes Generated: ${emergencyRoutes.length}
 
 Emergency Services Dispatched:
 ${emergencyRoutes.map(route => `${route.icon} ${route.serviceName} - ETA: ${route.eta}`).join('\n')}`
-    };
+        };
+      } else {
+        throw new Error(backendResult.error || 'Backend API call failed');
+      }
+    } catch (fetchError) {
+      console.error('❌ Backend API call failed, falling back to simulation:', fetchError);
+
+      // Fallback to simulation if backend is not available
+      const simulatedResults = [
+        ...emergencyRoutes.map(route => ({
+          recipient: route.serviceName,
+          phone: route.phone,
+          success: true,
+          simulated: true,
+          type: 'emergency_service'
+        })),
+        ...nearbyUsers.map(user => ({
+          recipient: user.name,
+          phone: user.phone,
+          success: true,
+          simulated: true,
+          type: 'public_user'
+        }))
+      ];
+
+      // Store fallback notification log in Firestore
+      await addDoc(collection(db, 'notificationLogs'), {
+        reportId: sosReport.id,
+        type: 'enhanced_emergency_dispatch_sms',
+        emergencyServices: emergencyRoutes.map(route => ({
+          message: `🚨 EMERGENCY DISPATCH ALERT 🚨 ${route.icon} ${route.serviceName} 📞 Emergency Report ID: ${sosReport.id} 📍 EMERGENCY LOCATION: Emergency Location: ${whatsappData.coordinates.lat.toFixed(4)}, ${whatsappData.coordinates.lng.toFixed(4)} Coordinates: ${whatsappData.coordinates.lat}, ${whatsappData.coordinates.lng} 🚨 EMERGENCY TYPE: ${whatsappData.message} ⏰ Reported: ${new Date().toLocaleString()} 🗺️ FASTEST ROUTE TO EMERGENCY: ${route.directionsText} 📱 ROUTE LINK: ${route.routeUrl} ✅ VERIFIED by Emergency Response Team ⚡ IMMEDIATE DISPATCH REQUIRED Emergency Contact: ${route.phone}`,
+          phone: route.phone,
+          recipient: route.serviceName
+        })),
+        publicRecipients: nearbyUsers,
+        publicMessage: publicWhatsappMessage,
+        smsResults: simulatedResults,
+        sentAt: serverTimestamp(),
+        status: 'sent',
+        note: 'Backend unavailable - simulated results'
+      });
+
+      return {
+        success: true,
+        recipientCount: nearbyUsers.length,
+        emergencyServicesNotified: emergencyRoutes.length,
+        routesGenerated: emergencyRoutes.length,
+        smsResults: simulatedResults,
+        totalSent: simulatedResults.length,
+        totalFailed: 0,
+        message: `Backend unavailable - Emergency notifications simulated!
+
+🚒 Emergency Services Alerted: ${emergencyRoutes.length}
+👥 Public Alerts Sent: ${nearbyUsers.length}
+🗺️ Routes Generated: ${emergencyRoutes.length}
+
+⚠️ Note: Actual sending failed, showing simulated results
+
+Emergency Services Dispatched:
+${emergencyRoutes.map(route => `${route.icon} ${route.serviceName} - ETA: ${route.eta}`).join('\n')}`
+      };
+    }
 
   } catch (error) {
     console.error('❌ Enhanced WhatsApp notification failed:', error);

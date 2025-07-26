@@ -230,7 +230,8 @@ function App() {
           console.log('🔄 Transforming report:', report.id, report);
 
           return {
-            _id: report.id,
+            id: report.id,
+            _id: report.id, // Keep both for compatibility
             userId: report.userId || 'unknown',
             userInfo: {
               name: `User ${report.userId.slice(-4)}` || 'Anonymous User', // Generate name from userId
@@ -284,9 +285,9 @@ function App() {
           _id: 'demo_firebase_1',
           userId: 'demo_user_1',
           userInfo: {
-            name: 'Demo User - Firebase',
-            phone: '+91-9876543210',
-            email: 'demo@firebase.com'
+            name: 'Emergency Contact',
+            phone: '+91-9996101244',
+            email: 'emergency@contact.com'
           },
           incident: {
             videoUrl: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4',
@@ -324,7 +325,10 @@ function App() {
       console.log(`🔄 Processing SOS report ${sosId} with decision: ${decision}`);
 
       // Find the current report for WhatsApp notifications
-      const currentReport = sosReports.find(report => report._id === sosId);
+      const currentReport = sosReports.find(report => report.id === sosId);
+      console.log('🔍 Looking for report with ID:', sosId);
+      console.log('📊 Available reports:', sosReports.map(r => ({ id: r.id, hasIncident: !!r.incident })));
+      console.log('📄 Found report:', currentReport ? 'Yes' : 'No', currentReport ? `(id: ${currentReport.id})` : '');
 
       // Update Firebase with admin decision
       const adminNotes = decision === 'approved'
@@ -335,7 +339,17 @@ function App() {
 
       // Send WhatsApp notifications if approved
       if (decision === 'approved' && currentReport) {
-        console.log('📱 Sending WhatsApp notifications...');
+        console.log('📱 Sending WhatsApp notifications for report:', currentReport.id);
+        console.log('📍 Report structure check:', {
+          hasId: !!currentReport.id,
+          hasIncident: !!currentReport.incident,
+          hasLocation: !!currentReport.incident?.location,
+          hasMessage: !!currentReport.incident?.message,
+          coordinates: currentReport.incident?.location ? {
+            lat: currentReport.incident.location.latitude,
+            lng: currentReport.incident.location.longitude
+          } : 'No coordinates'
+        });
 
         const whatsappResult = await sendWhatsAppNotifications(currentReport, { adminNotes });
 
