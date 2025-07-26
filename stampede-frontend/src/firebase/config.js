@@ -353,10 +353,10 @@ const generateEmergencyRoutes = async (sosLocation, emergencyServices) => {
   }
 };
 
-// Enhanced WhatsApp notification function with emergency service routes
+// Enhanced WhatsApp notification function with emergency service routes and REAL sending
 export const sendWhatsAppNotifications = async (sosReport, approvalData) => {
   try {
-    console.log('📱 Sending enhanced WhatsApp notifications for approved SOS report...');
+    console.log('📱 Sending REAL WhatsApp notifications for approved SOS report...');
 
     const whatsappData = {
       reportId: sosReport.id,
