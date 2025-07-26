@@ -60,9 +60,171 @@ app.post('/api/alert/stampede', async (req, res) => {
     } catch (error) {
         console.error('Twilio Error:', error); // Internal log
 
-        res.status(500).json({ 
-            success: false, 
-            error: 'WhatsApp alert failed. Please try again later.' 
+        res.status(500).json({
+            success: false,
+            error: 'WhatsApp alert failed. Please try again later.'
+        });
+    }
+});
+
+// API endpoint for emergency dispatch notifications
+app.post('/api/emergency/dispatch', async (req, res) => {
+    const {
+        reportId,
+        location,
+        coordinates,
+        emergencyType,
+        emergencyServices,
+        publicRecipients,
+        adminNotes
+    } = req.body;
+
+    // Input validation
+    if (!reportId || !location || !coordinates || !emergencyServices) {
+        return res.status(400).json({
+            success: false,
+            error: 'Missing required fields: reportId, location, coordinates, emergencyServices'
+        });
+    }
+
+    console.log(`🚨 Processing emergency dispatch for report: ${reportId}`);
+    console.log(`📍 Location: ${location}`);
+    console.log(`🚒 Emergency services to notify: ${emergencyServices.length}`);
+    console.log(`👥 Public recipients: ${publicRecipients?.length || 0}`);
+
+    const results = {
+        success: true,
+        smsResults: [],
+        errors: []
+    };
+
+    try {
+        // Send emergency service notifications
+        for (const service of emergencyServices) {
+            try {
+                const emergencyMessage = `🚨 EMERGENCY DISPATCH ALERT 🚨
+
+${service.icon} ${service.recipient}
+📞 Emergency Report ID: ${reportId}
+
+��� EMERGENCY LOCATION:
+${location}
+Coordinates: ${coordinates.lat}, ${coordinates.lng}
+
+🚨 EMERGENCY TYPE: ${emergencyType}
+⏰ Reported: ${new Date().toLocaleString()}
+
+🗺️ FASTEST ROUTE TO EMERGENCY:
+${service.directionsText}
+
+📱 ROUTE LINK: ${service.routeUrl}
+
+✅ VERIFIED by Emergency Response Team
+⚡ IMMEDIATE DISPATCH REQUIRED
+
+Emergency Contact: ${service.phone}`;
+
+                const message = await client.messages.create({
+                    from: 'whatsapp:+14155238886', // Twilio Sandbox
+                    to: `whatsapp:${service.phone}`,
+                    body: emergencyMessage
+                });
+
+                results.smsResults.push({
+                    recipient: service.recipient,
+                    phone: service.phone,
+                    success: true,
+                    messageId: message.sid,
+                    type: 'emergency_service',
+                    simulated: false
+                });
+
+                console.log(`✅ Emergency alert sent to ${service.recipient}: ${message.sid}`);
+            } catch (error) {
+                console.error(`❌ Failed to send to ${service.recipient}:`, error.message);
+                results.smsResults.push({
+                    recipient: service.recipient,
+                    phone: service.phone,
+                    success: false,
+                    error: error.message,
+                    type: 'emergency_service',
+                    simulated: false
+                });
+                results.errors.push(`Emergency service ${service.recipient}: ${error.message}`);
+            }
+        }
+
+        // Send public notifications
+        if (publicRecipients && publicRecipients.length > 0) {
+            const publicMessage = `🚨 EMERGENCY ALERT 🚨
+
+📍 Location: ${location}
+📱 Reported: ${emergencyType}
+⏰ Time: ${new Date().toLocaleString()}
+🗺️ Maps: https://maps.google.com/maps?q=${coordinates.lat},${coordinates.lng}
+
+🚒 Emergency Services Dispatched:
+${emergencyServices.map(s => `${s.icon} ${s.serviceName} (ETA: ${s.eta})`).join('\n')}
+
+✅ Verified by Emergency Response Team
+⚡ Take immediate safety precautions
+📞 Stay clear of emergency vehicles
+
+Stay Safe! 🙏`;
+
+            for (const user of publicRecipients) {
+                try {
+                    const message = await client.messages.create({
+                        from: 'whatsapp:+14155238886', // Twilio Sandbox
+                        to: `whatsapp:${user.phone}`,
+                        body: publicMessage
+                    });
+
+                    results.smsResults.push({
+                        recipient: user.name,
+                        phone: user.phone,
+                        success: true,
+                        messageId: message.sid,
+                        type: 'public_user',
+                        simulated: false
+                    });
+
+                    console.log(`✅ Public alert sent to ${user.name}: ${message.sid}`);
+                } catch (error) {
+                    console.error(`❌ Failed to send to ${user.name}:`, error.message);
+                    results.smsResults.push({
+                        recipient: user.name,
+                        phone: user.phone,
+                        success: false,
+                        error: error.message,
+                        type: 'public_user',
+                        simulated: false
+                    });
+                    results.errors.push(`Public user ${user.name}: ${error.message}`);
+                }
+            }
+        }
+
+        const totalSent = results.smsResults.filter(r => r.success).length;
+        const totalFailed = results.smsResults.filter(r => !r.success).length;
+
+        console.log(`📊 Emergency dispatch completed: ${totalSent} sent, ${totalFailed} failed`);
+
+        res.status(200).json({
+            success: results.errors.length === 0,
+            message: `Emergency notifications processed: ${totalSent} sent, ${totalFailed} failed`,
+            totalSent,
+            totalFailed,
+            smsResults: results.smsResults,
+            errors: results.errors
+        });
+
+    } catch (error) {
+        console.error('❌ Emergency dispatch error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Emergency dispatch failed. Please try again.',
+            details: error.message
         });
     }
 });
