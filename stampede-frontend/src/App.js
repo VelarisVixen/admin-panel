@@ -230,7 +230,8 @@ function App() {
           console.log('🔄 Transforming report:', report.id, report);
 
           return {
-            _id: report.id,
+            id: report.id,
+            _id: report.id, // Keep both for compatibility
             userId: report.userId || 'unknown',
             userInfo: {
               name: `User ${report.userId.slice(-4)}` || 'Anonymous User', // Generate name from userId
