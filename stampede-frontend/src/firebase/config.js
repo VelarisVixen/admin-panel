@@ -423,12 +423,9 @@ ${route.directionsText}
 Emergency Contact: ${route.phone}`
     }));
 
-    // Simulate nearby users (for public alerts)
+    // Send to specific user instead of nearby users
     const nearbyUsers = [
-      { name: 'User A', phone: '+91-9876543210', distance: '0.2km' },
-      { name: 'User B', phone: '+91-9876543211', distance: '0.5km' },
-      { name: 'User C', phone: '+91-9876543212', distance: '0.8km' },
-      { name: 'User D', phone: '+91-9876543213', distance: '1.0km' }
+      { name: 'Emergency Contact', phone: '+91-9996101244', distance: '0.0km' }
     ];
 
     // Create public WhatsApp message template
@@ -512,7 +509,7 @@ Stay Safe! 🙏`;
           message: `REAL emergency notifications sent via Twilio!
 
 🚒 Emergency Services Alerted: ${backendResult.totalSent}
-❌ Failed Notifications: ${backendResult.totalFailed}
+�� Failed Notifications: ${backendResult.totalFailed}
 🗺️ Routes Generated: ${emergencyRoutes.length}
 
 Emergency Services Dispatched:
@@ -609,7 +606,7 @@ export const createAlert = async (alertData) => {
     console.log('✅ Alert created successfully with ID:', docRef.id);
     return docRef.id;
   } catch (error) {
-    console.error('��� Failed to create alert:', error);
+    console.error('❌ Failed to create alert:', error);
     throw new Error(`Failed to create alert: ${error.message}`);
   }
 };
