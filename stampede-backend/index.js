@@ -13,16 +13,34 @@ const port = process.env.PORT || 5000; // Use port 5000 for backend
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 
+// Check if we're in demo mode (invalid/missing Twilio credentials)
+const isDemoMode = !accountSid || !authToken || accountSid === 'demo_account_sid' || authToken === 'demo_auth_token' || !accountSid.startsWith('AC');
+
 // Helper to ensure 'whatsapp:' prefix is always added
 const formatWhatsAppNumber = (number) => {
     return number.startsWith('whatsapp:') ? number : `whatsapp:${number}`;
 };
 
-const twilioWhatsAppPhoneNumber = formatWhatsAppNumber(process.env.TWILIO_PHONE_NUMBER);
-const recipientWhatsAppPhoneNumber = formatWhatsAppNumber(process.env.RECIPIENT_PHONE_NUMBER);
+const twilioWhatsAppPhoneNumber = formatWhatsAppNumber(process.env.TWILIO_PHONE_NUMBER || '+14155238886');
+const recipientWhatsAppPhoneNumber = formatWhatsAppNumber(process.env.RECIPIENT_PHONE_NUMBER || '+91234567890');
 
-// Initialize Twilio client
-const client = new twilio(accountSid, authToken);
+// Initialize Twilio client only if not in demo mode
+let client = null;
+if (!isDemoMode) {
+    try {
+        client = new twilio(accountSid, authToken);
+        console.log('✅ Twilio client initialized successfully');
+    } catch (error) {
+        console.warn('⚠️ Twilio initialization failed, switching to demo mode:', error.message);
+        isDemoMode = true;
+    }
+} else {
+    console.log('📋 Running in DEMO MODE - WhatsApp messages will be simulated');
+    console.log('💡 To enable real WhatsApp sending:');
+    console.log('   1. Get Twilio credentials from https://console.twilio.com');
+    console.log('   2. Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN environment variables');
+    console.log('   3. Restart the server');
+}
 
 // Middleware
 app.use(cors()); // Enable CORS for all routes (important for frontend)
@@ -107,7 +125,7 @@ app.post('/api/emergency/dispatch', async (req, res) => {
 ${service.icon} ${service.recipient}
 📞 Emergency Report ID: ${reportId}
 
-��� EMERGENCY LOCATION:
+📍 EMERGENCY LOCATION:
 ${location}
 Coordinates: ${coordinates.lat}, ${coordinates.lng}
 
