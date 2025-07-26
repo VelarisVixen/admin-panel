@@ -154,22 +154,39 @@ ${service.directionsText}
 
 Emergency Contact: ${service.phone}`;
 
-                const message = await client.messages.create({
-                    from: 'whatsapp:+14155238886', // Twilio Sandbox
-                    to: `whatsapp:${service.phone}`,
-                    body: emergencyMessage
-                });
+                if (isDemoMode) {
+                    console.log(`📋 DEMO MODE: Simulating emergency alert to ${service.recipient}`);
+                    console.log(`📱 Would send to: whatsapp:${service.phone}`);
+                    console.log(`📝 Message preview: ${emergencyMessage.substring(0, 100)}...`);
 
-                results.smsResults.push({
-                    recipient: service.recipient,
-                    phone: service.phone,
-                    success: true,
-                    messageId: message.sid,
-                    type: 'emergency_service',
-                    simulated: false
-                });
+                    results.smsResults.push({
+                        recipient: service.recipient,
+                        phone: service.phone,
+                        success: true,
+                        messageId: `demo_msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                        type: 'emergency_service',
+                        simulated: true
+                    });
 
-                console.log(`✅ Emergency alert sent to ${service.recipient}: ${message.sid}`);
+                    console.log(`✅ Emergency alert simulated for ${service.recipient}`);
+                } else {
+                    const message = await client.messages.create({
+                        from: 'whatsapp:+14155238886', // Twilio Sandbox
+                        to: `whatsapp:${service.phone}`,
+                        body: emergencyMessage
+                    });
+
+                    results.smsResults.push({
+                        recipient: service.recipient,
+                        phone: service.phone,
+                        success: true,
+                        messageId: message.sid,
+                        type: 'emergency_service',
+                        simulated: false
+                    });
+
+                    console.log(`✅ Emergency alert sent to ${service.recipient}: ${message.sid}`);
+                }
             } catch (error) {
                 console.error(`❌ Failed to send to ${service.recipient}:`, error.message);
                 results.smsResults.push({
