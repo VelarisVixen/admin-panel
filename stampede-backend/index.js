@@ -14,7 +14,7 @@ const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 
 // Check if we're in demo mode (invalid/missing Twilio credentials)
-const isDemoMode = !accountSid || !authToken || accountSid === 'demo_account_sid' || authToken === 'demo_auth_token' || !accountSid.startsWith('AC');
+let isDemoMode = !accountSid || !authToken || accountSid === 'demo_account_sid' || authToken === 'demo_auth_token' || !accountSid.startsWith('AC');
 
 // Helper to ensure 'whatsapp:' prefix is always added
 const formatWhatsAppNumber = (number) => {
@@ -137,7 +137,7 @@ app.post('/api/emergency/dispatch', async (req, res) => {
 ${service.icon} ${service.recipient}
 📞 Emergency Report ID: ${reportId}
 
-📍 EMERGENCY LOCATION:
+�� EMERGENCY LOCATION:
 ${location}
 Coordinates: ${coordinates.lat}, ${coordinates.lng}
 
