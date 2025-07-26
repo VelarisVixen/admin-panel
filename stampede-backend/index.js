@@ -221,22 +221,38 @@ Stay Safe! 🙏`;
 
             for (const user of publicRecipients) {
                 try {
-                    const message = await client.messages.create({
-                        from: 'whatsapp:+14155238886', // Twilio Sandbox
-                        to: `whatsapp:${user.phone}`,
-                        body: publicMessage
-                    });
+                    if (isDemoMode) {
+                        console.log(`📋 DEMO MODE: Simulating public alert to ${user.name}`);
+                        console.log(`📱 Would send to: whatsapp:${user.phone}`);
 
-                    results.smsResults.push({
-                        recipient: user.name,
-                        phone: user.phone,
-                        success: true,
-                        messageId: message.sid,
-                        type: 'public_user',
-                        simulated: false
-                    });
+                        results.smsResults.push({
+                            recipient: user.name,
+                            phone: user.phone,
+                            success: true,
+                            messageId: `demo_msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                            type: 'public_user',
+                            simulated: true
+                        });
 
-                    console.log(`✅ Public alert sent to ${user.name}: ${message.sid}`);
+                        console.log(`✅ Public alert simulated for ${user.name}`);
+                    } else {
+                        const message = await client.messages.create({
+                            from: 'whatsapp:+14155238886', // Twilio Sandbox
+                            to: `whatsapp:${user.phone}`,
+                            body: publicMessage
+                        });
+
+                        results.smsResults.push({
+                            recipient: user.name,
+                            phone: user.phone,
+                            success: true,
+                            messageId: message.sid,
+                            type: 'public_user',
+                            simulated: false
+                        });
+
+                        console.log(`✅ Public alert sent to ${user.name}: ${message.sid}`);
+                    }
                 } catch (error) {
                     console.error(`❌ Failed to send to ${user.name}:`, error.message);
                     results.smsResults.push({
@@ -245,7 +261,7 @@ Stay Safe! 🙏`;
                         success: false,
                         error: error.message,
                         type: 'public_user',
-                        simulated: false
+                        simulated: isDemoMode
                     });
                     results.errors.push(`Public user ${user.name}: ${error.message}`);
                 }
